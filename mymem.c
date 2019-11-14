@@ -59,8 +59,20 @@ void initmem(strategies strategy, size_t sz)
 
 
 	myMemory = malloc(sz);
+
+    /* TODO: Initialize memory management structure. */
+
+	head = (struct memoryList*) malloc(sizeof(struct memoryList));
+	head->last=NULL;
+	head->next=NULL;
+	head->size=sz; // initialy the first block size is equals to the memory pool size.
+	head->alloc=0; // not allocated
+	head->ptr=myMemory; // points to the same memory adress as the memory pool
+
+
+
 	
-	/* TODO: Initialize memory management structure. */
+
 
 
 }
@@ -86,7 +98,7 @@ void *mymalloc(size_t requested)
 	  case Worst:
 	            return NULL;
 	  case Next:
-	            return NULL;
+	            initmem(Next,requested);
 	  }
 	return NULL;
 }
@@ -95,7 +107,7 @@ void *mymalloc(size_t requested)
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block)
 {
-	return;
+	return free(block);
 }
 
 /****** Memory status/property functions ******
@@ -210,7 +222,13 @@ strategies strategyFromString(char * strategy)
 /* Use this function to print out the current contents of memory. */
 void print_memory()
 {
-	return;
+    struct memoryList* temp = head;
+    printf("Size: ");
+    while(temp != NULL) {
+        printf("%d ",temp->size);
+        temp = temp->next;
+    }
+    printf("\n");
 }
 
 /* Use this function to track memory allocation performance.  

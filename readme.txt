@@ -1,4 +1,4 @@
-
+I have implemented Next-Fit memory allocation strategy
 
 
 
