@@ -49,14 +49,14 @@ static struct memoryList *next;
 void* nextFit (size_t requested){
         next = (struct memoryList *) malloc(requested);
         next->size = requested;
-        next->next = head;
-        next->last = NULL;
 
-        if (head!=NULL){
-            head->last = next;
+        if (head==NULL){
+            head = next;
+            return next;
         }
+        head->last = next;
+        next->next = head;
         head = next;
-        next->ptr = head;
         next->alloc = 1;
 }
 
@@ -95,13 +95,6 @@ void initmem(strategies strategy, size_t sz)
 	head->size=sz; // initially the first block size is equals to the memory pool size.
 	head->alloc=0; // not allocated
 	head->ptr=myMemory; // points to the same memory address as the memory pool
-
-
-
-
-	
-
-
 
 }
 
