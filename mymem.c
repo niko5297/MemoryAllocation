@@ -47,17 +47,30 @@ static struct memoryList *next;
 */
 
 void* nextFit (size_t requested){
-    next = (struct memoryList*) malloc(requested);
-    next->size=requested;
-    head->next=next;
-    next->alloc=1;
+        next = (struct memoryList *) malloc(requested);
+        next->size = requested;
+        next->next = head;
+        next->last = NULL;
 
-
+        if (head!=NULL){
+            head->last = next;
+        }
+        head = next;
+        next->ptr = head;
+        next->alloc = 1;
 }
 
 void freeMem(){
 
     //TODO: Hvis initmem køres igen, så skal alt memory wipes. Dvs. du skal køre igennem alt memory og benytte free
+    while (head!=NULL) {
+        free(head->ptr);
+        head = head->next;
+        if (head->next==NULL){
+            free(head->ptr);
+            head = head->last;
+        }
+    }
 
 }
 
@@ -70,9 +83,7 @@ void initmem(strategies strategy, size_t sz)
 
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
-	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
-
-	freeMem();
+	if (head!=NULL) freeMem();
 
 	myMemory = malloc(sz);
 
@@ -115,7 +126,9 @@ void *mymalloc(size_t requested)
 	  case Worst:
 	            return NULL;
 	  case Next:
-                return nextFit(requested);
+	            if (requested<=head->size) {
+                    return nextFit(requested);
+                } else return "ERROR: Not enough memory";
 	  }
 	return NULL;
 }
@@ -149,7 +162,7 @@ int mem_allocated()
 /* Number of non-allocated bytes */
 int mem_free()
 {
-	return 0;
+	return head->size;
 }
 
 /* Number of bytes in the largest contiguous area of unallocated memory */
