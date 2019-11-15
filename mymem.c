@@ -143,30 +143,40 @@ void myfree(void* block)
 /* Get the number of contiguous areas of free space in memory. */
 int mem_holes()
 {
+    //TODO: Traverse through the list and count the number of allocs are 0
 	return 0;
 }
 
 /* Get the number of bytes allocated */
 int mem_allocated()
 {
-	return 0;
+    //FIXME: Traverse through the list and count the number of allocs are 1
+
+    //Dette fungere fra nu, men hvis der begynder at komme huller så vuk den ikke
+	return mySize-head->size;
 }
 
 /* Number of non-allocated bytes */
 int mem_free()
 {
+    //TODO: Traverse through the list and add the size of all allocs which are 0
 	return head->size;
 }
 
 /* Number of bytes in the largest contiguous area of unallocated memory */
 int mem_largest_free()
 {
+    /**
+     * In this function you should think about going through the memoryList and check for longest
+     * sequence of unallocated bytes(alloc = 0). Keep track of the largest sequence and update in accordingly.
+     */
 	return 0;
 }
 
 /* Number of free blocks smaller than "size" bytes. */
 int mem_small_free(int size)
 {
+    //TODO: Same logic as above just instead of max compare with size
 	return 0;
 }       
 
