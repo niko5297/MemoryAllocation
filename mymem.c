@@ -46,6 +46,21 @@ static struct memoryList *next;
    sz specifies the number of bytes that will be available, in total, for all mymalloc requests.
 */
 
+void* nextFit (size_t requested){
+    next = (struct memoryList*) malloc(requested);
+    next->size=requested;
+    head->next=next;
+    next->alloc=1;
+
+
+}
+
+void freeMem(){
+
+    //TODO: Hvis initmem køres igen, så skal alt memory wipes. Dvs. du skal køre igennem alt memory og benytte free
+
+}
+
 void initmem(strategies strategy, size_t sz)
 {
 	myStrategy = strategy;
@@ -57,6 +72,7 @@ void initmem(strategies strategy, size_t sz)
 
 	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
 
+	freeMem();
 
 	myMemory = malloc(sz);
 
@@ -65,9 +81,10 @@ void initmem(strategies strategy, size_t sz)
 	head = (struct memoryList*) malloc(sizeof(struct memoryList));
 	head->last=NULL;
 	head->next=NULL;
-	head->size=sz; // initialy the first block size is equals to the memory pool size.
+	head->size=sz; // initially the first block size is equals to the memory pool size.
 	head->alloc=0; // not allocated
-	head->ptr=myMemory; // points to the same memory adress as the memory pool
+	head->ptr=myMemory; // points to the same memory address as the memory pool
+
 
 
 
@@ -98,10 +115,11 @@ void *mymalloc(size_t requested)
 	  case Worst:
 	            return NULL;
 	  case Next:
-	            initmem(Next,requested);
+                return nextFit(requested);
 	  }
 	return NULL;
 }
+
 
 
 /* Frees a block of memory previously allocated by mymalloc. */
@@ -223,12 +241,10 @@ strategies strategyFromString(char * strategy)
 void print_memory()
 {
     struct memoryList* temp = head;
-    printf("Size: ");
     while(temp != NULL) {
-        printf("%d ",temp->size);
+        printf("Size: %d\n",temp->size);
         temp = temp->next;
     }
-    printf("\n");
 }
 
 /* Use this function to track memory allocation performance.  
