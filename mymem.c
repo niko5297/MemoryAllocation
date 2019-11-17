@@ -24,8 +24,8 @@ struct memoryList
 
 strategies myStrategy = NotSet;    // Current strategy
 
-
 size_t mySize;
+int sizeLeft;
 void *myMemory = NULL;
 
 static struct memoryList *head;
@@ -47,9 +47,23 @@ static struct memoryList *next;
 */
 
 void* nextFit (size_t requested){
-        int sizeBeforeAllocation = head->size;
+
+
         next = (struct memoryList *) malloc(requested);
         next->size = requested;
+
+        next->alloc = 1;
+        next->next = head;
+        next->last = NULL;
+
+         if(head!=NULL){
+             head->last = next;
+         }
+
+        head = next;
+
+
+
         /*
         next->last = next;
         next->next = next->next;
@@ -68,21 +82,31 @@ void* nextFit (size_t requested){
          */
 
 
+        /*
 
+        next->alloc = 1;
         if (head==NULL){
             head = next;
             return next;
         }
-        head->last = next;
-        next->next = head;
-        next->alloc = 1;
 
-        //Moves head forward;
-        head = next;
+        //FIXME: Sæt Last til noget ellers kan du ikke free det element
+        if (next->last!=NULL){
+            next->next = head;
+            next->last = next->last;
+            printf("Last: %d\n",next->last->size);
+        }
+        else {
+           // printf("First: %d\n", next->size);
+            //head->last = next;
+            next->next = head;
+            next->last = head;
+            //Moves head forward
+            head = next;
 
-        //FIXME: Hvorfor fungere det ikke når denne kører?
-        //head->size = sizeBeforeAllocation-next->size;
 
+        }
+         */
 
 
     return next->ptr;
@@ -148,7 +172,6 @@ void* mergeBackward(struct memoryList* temp){
 
 void freeMem(){
 
-    //TODO: Hvis initmem køres igen, så skal alt memory wipes. Dvs. du skal køre igennem alt memory og benytte free
     while (head!=NULL) {
         free(head->ptr);
         head = head->next;
@@ -166,6 +189,7 @@ void initmem(strategies strategy, size_t sz)
 
 	/* all implementations will need an actual block of memory to use */
 	mySize = sz;
+	sizeLeft = sz;
 
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
@@ -205,13 +229,12 @@ void *mymalloc(size_t requested)
 	  case Worst:
 	            return NULL;
 	  case Next:
-	            if (requested<=head->size /*&& head->alloc==0*/) {
+	            if (requested<=head->size /*&& head->alloc!=1*/) {
                     return nextFit(requested);
                 } else {
                     return "ERROR: Not enough memory";
-	            }
-	  }
-	return NULL;
+                }
+      }
 }
 
 
@@ -257,8 +280,9 @@ void myfree(void* block)
             temp2->next->ptr = temp2->last;
         }
 
-        printf("Freeing %d\n",temp2->size);
+        printf("Freeing last %d\n",temp2->size);
         free(temp2);
+        return;
 
     }
 
@@ -266,23 +290,27 @@ void myfree(void* block)
     //TODO: Comment what following line is doing
     if ((temp->next != NULL) && temp->next->alloc==0){
         //mergeForward(temp);
-        temp->next->size += temp->size;
+       // printf("Last %d",temp->last->size);
+       //printf("Temp %d",temp->size);
+        //temp->next->size += temp->size;
         struct memoryList* temp2 = temp->next;
        //struct memoryList* temp2 = temp;
 
-        if (temp2->next!= NULL){
+       if (temp2->next!= NULL){
 
             temp2->next->ptr = temp2->last;
             temp2->last->ptr = temp2->next;
 
         }
-        printf("Freeing %d\n",temp2->size);
-        printf("Headsize before %d\n",head->size);
+        printf("Freeing next %d\n",temp2->size);
         free(temp2);
-        printf("Headsize after %d\n",head->size);
+        return;
+
 
 
     }
+
+
 
 
 
