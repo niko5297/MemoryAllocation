@@ -30,6 +30,7 @@ void *myMemory = NULL;
 
 static struct memoryList *head;
 static struct memoryList *next;
+static struct memoryList *current;
 
 
 /* initmem must be called prior to mymalloc and myfree.
@@ -51,16 +52,28 @@ void* nextFit (size_t requested){
 
         next = (struct memoryList *) malloc(requested);
         next->size = requested;
-
         next->alloc = 1;
-        next->next = head;
-        next->last = NULL;
 
-         if(head!=NULL){
-             head->last = next;
-         }
+        if (current!=NULL){
+            next->last = current;
+            current->next = next;
 
-        head = next;
+
+            //FIXME: Hvorfor spam printer den?
+            //next->next = head;
+
+            head->last = next;
+        }
+        else {
+            next->next = head;
+            next->last = NULL;
+
+            if (head != NULL){
+                head->last = next;
+            }
+            head = next;
+        }
+        current = next;
 
 
 
@@ -109,7 +122,7 @@ void* nextFit (size_t requested){
          */
 
 
-    return next->ptr;
+    return current->ptr;
 
 
 }
@@ -235,6 +248,7 @@ void *mymalloc(size_t requested)
                     return "ERROR: Not enough memory";
                 }
       }
+    return NULL;
 }
 
 
@@ -373,12 +387,11 @@ int mem_largest_free()
      */
     struct memoryList* temp = head;
     int sizeFree = 0;
-    int tempFree = mySize;
+    int tempFree = 0;
     while(temp != NULL) {
         if (temp->alloc==0){
-
-
-
+            tempFree = temp->size;
+            if (tempFree>sizeFree) sizeFree = tempFree;
         }
         temp = temp->next;
     }
