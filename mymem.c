@@ -47,8 +47,27 @@ static struct memoryList *next;
 */
 
 void* nextFit (size_t requested){
+        int sizeBeforeAllocation = head->size;
         next = (struct memoryList *) malloc(requested);
         next->size = requested;
+        /*
+        next->last = next;
+        next->next = next->next;
+
+        if (next->next!=NULL){
+            //Explain
+            next->next->last = next;
+            next->next = next;
+        }
+
+        next->size = head->size-requested;
+        next->ptr = head->ptr+requested;
+        next->alloc = 1;
+        head->alloc = 0;
+    return head->ptr;
+         */
+
+
 
         if (head==NULL){
             head = next;
@@ -56,8 +75,75 @@ void* nextFit (size_t requested){
         }
         head->last = next;
         next->next = head;
-        head = next;
         next->alloc = 1;
+
+        //Moves head forward;
+        head = next;
+
+        //FIXME: Hvorfor fungere det ikke når denne kører?
+        //head->size = sizeBeforeAllocation-next->size;
+
+
+
+    return next->ptr;
+
+
+}
+
+int isForwardBlockFree(void* block){
+    struct memoryList* temp = next;
+    temp->ptr = block;
+    if (block!=NULL) {
+        if (temp->next->alloc == 0) {
+            return 1;
+        } else return 0;
+    }
+}
+
+int isBackwardBlockFree(void* block){
+    struct memoryList* temp = next;
+    temp->ptr = block;
+    if (block!=NULL) {
+        if (temp->last->alloc == 0) {
+            return 1;
+        } else return 0;
+    }
+}
+
+void* mergeForward(struct memoryList* temp){
+
+    if (temp==NULL){
+        return NULL;
+    }
+
+    /*
+     * block.next = next.next;
+     * block.size += next.size;
+     * free(next);
+     */
+    temp->next = next->next;
+    temp->size += next->size;
+    free(next);
+
+}
+
+void* mergeBackward(struct memoryList* temp){
+
+    if (temp==NULL){
+        return NULL;
+    }
+
+    /*
+     * block.last = last.last;
+     * block.size += last.size;
+     * block.ptr = last.ptr;
+     * free(last);
+     */
+
+    temp->last = next->last;
+    temp->size += next->last;
+    temp->ptr = next->last->ptr;
+    free(next);
 }
 
 void freeMem(){
@@ -119,9 +205,11 @@ void *mymalloc(size_t requested)
 	  case Worst:
 	            return NULL;
 	  case Next:
-	            if (requested<=head->size) {
+	            if (requested<=head->size /*&& head->alloc==0*/) {
                     return nextFit(requested);
-                } else return "ERROR: Not enough memory";
+                } else {
+                    return "ERROR: Not enough memory";
+	            }
 	  }
 	return NULL;
 }
@@ -131,7 +219,73 @@ void *mymalloc(size_t requested)
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block)
 {
-	return free(block);
+
+    /*
+     * Find element
+     * Set Alloc
+     * Merge block
+     */
+
+    /*
+     * Mergeblock(block)
+     * Check Alloc
+     *  if nextFree(block)
+     *      newBlock = merge()
+     *      Mergeblock(newBlock)
+     *  else if behindFree(block)
+     *      newBlock = merge()
+     *      Mergeblock(newBlock)
+     *  return;
+     */
+
+    struct memoryList* temp = head;
+    while (temp->ptr!=block){
+        temp = temp->next;
+    }
+
+
+    temp->alloc = 0;
+
+    //TODO: Comment what following line is doing
+
+    if ((temp->last != NULL) && temp->last->alloc==0){
+        //mergeBackward(temp);
+        temp->last->size += temp->size;
+        struct memoryList* temp2 = temp;
+        if (temp2->last !=NULL) {
+            temp2->last->ptr = temp2->next;
+            temp2->next->ptr = temp2->last;
+        }
+
+        printf("Freeing %d\n",temp2->size);
+        free(temp2);
+
+    }
+
+
+    //TODO: Comment what following line is doing
+    if ((temp->next != NULL) && temp->next->alloc==0){
+        //mergeForward(temp);
+        temp->next->size += temp->size;
+        struct memoryList* temp2 = temp->next;
+       //struct memoryList* temp2 = temp;
+
+        if (temp2->next!= NULL){
+
+            temp2->next->ptr = temp2->last;
+            temp2->last->ptr = temp2->next;
+
+        }
+        printf("Freeing %d\n",temp2->size);
+        printf("Headsize before %d\n",head->size);
+        free(temp2);
+        printf("Headsize after %d\n",head->size);
+
+
+    }
+
+
+
 }
 
 /****** Memory status/property functions ******
@@ -143,24 +297,43 @@ void myfree(void* block)
 /* Get the number of contiguous areas of free space in memory. */
 int mem_holes()
 {
-    //TODO: Traverse through the list and count the number of allocs are 0
-	return 0;
+    struct memoryList* temp = head;
+    int nonAllocs = 0;
+    while(temp != NULL) {
+        if (temp->alloc==0){
+            nonAllocs++;
+        }
+        temp = temp->next;
+    }
+	return nonAllocs;
 }
 
 /* Get the number of bytes allocated */
 int mem_allocated()
 {
-    //FIXME: Traverse through the list and count the number of allocs are 1
-
-    //Dette fungere fra nu, men hvis der begynder at komme huller så vuk den ikke
-	return mySize-head->size;
+    struct memoryList* temp = head;
+    int sizeAllocated = 0;
+    while(temp != NULL) {
+        if (temp->alloc==1){
+            sizeAllocated += temp->size;
+        }
+        temp = temp->next;
+    }
+    return sizeAllocated;
 }
 
 /* Number of non-allocated bytes */
 int mem_free()
 {
-    //TODO: Traverse through the list and add the size of all allocs which are 0
-	return head->size;
+    struct memoryList* temp = head;
+    int sizeFree = mySize;
+    while(temp != NULL) {
+        if (temp->alloc==1){
+            sizeFree -= temp->size;
+        }
+        temp = temp->next;
+    }
+    return sizeFree;
 }
 
 /* Number of bytes in the largest contiguous area of unallocated memory */
@@ -170,7 +343,18 @@ int mem_largest_free()
      * In this function you should think about going through the memoryList and check for longest
      * sequence of unallocated bytes(alloc = 0). Keep track of the largest sequence and update in accordingly.
      */
-	return 0;
+    struct memoryList* temp = head;
+    int sizeFree = 0;
+    int tempFree = mySize;
+    while(temp != NULL) {
+        if (temp->alloc==0){
+
+
+
+        }
+        temp = temp->next;
+    }
+    return sizeFree;
 }
 
 /* Number of free blocks smaller than "size" bytes. */
@@ -182,7 +366,9 @@ int mem_small_free(int size)
 
 char mem_is_alloc(void *ptr)
 {
-        return 0;
+
+
+    return 0;
 }
 
 /* 
