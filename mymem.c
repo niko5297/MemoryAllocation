@@ -49,7 +49,7 @@ static struct memoryList *current;
 
 void* nextFit (size_t requested){
 
-
+/*
         next = (struct memoryList *) malloc(requested);
         next->size = requested;
         next->alloc = 1;
@@ -72,8 +72,32 @@ void* nextFit (size_t requested){
                 head->last = next;
             }
             head = next;
+            head->size = sizeLeft - requested;
         }
         current = next;
+
+
+    return current->ptr;
+*/
+
+
+
+
+
+    next = (struct memoryList *) malloc(requested);
+    next->size = requested;
+    next->alloc = 1;
+    next->next = head;
+    next->last = NULL;
+
+        if (head != NULL){
+            head->last = next;
+        }
+        head = next;
+
+
+        return next->ptr;
+
 
 
 
@@ -120,9 +144,6 @@ void* nextFit (size_t requested){
 
         }
          */
-
-
-    return current->ptr;
 
 
 }
