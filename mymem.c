@@ -52,7 +52,6 @@ void* nextFit (size_t requested){
     /**
      * Skriv lidt om fordi det ligner Anders's løsning
      */
-        next = (struct memoryList *) malloc(sizeof(struct memoryList));
 
         if (current == NULL){
             current = head;
@@ -65,10 +64,10 @@ void* nextFit (size_t requested){
                 current = current->next;
             } else if (sizeLeft != 0) {
 
+                next = (struct memoryList *) malloc(sizeof(struct memoryList));
                 next->last = current;
                 next->next = current->next;
                 next->size = sizeLeft;
-                next->alloc = 0;
 
                 if (head->next == NULL){
                     head->next = next;
@@ -97,63 +96,6 @@ void* nextFit (size_t requested){
 
 
 }
-
-int isForwardBlockFree(void* block){
-    struct memoryList* temp = next;
-    temp->ptr = block;
-    if (block!=NULL) {
-        if (temp->next->alloc == 0) {
-            return 1;
-        } else return 0;
-    }
-}
-
-int isBackwardBlockFree(void* block){
-    struct memoryList* temp = next;
-    temp->ptr = block;
-    if (block!=NULL) {
-        if (temp->last->alloc == 0) {
-            return 1;
-        } else return 0;
-    }
-}
-
-void* mergeForward(struct memoryList* temp){
-
-    if (temp==NULL){
-        return NULL;
-    }
-
-    /*
-     * block.next = next.next;
-     * block.size += next.size;
-     * free(next);
-     */
-    temp->next = next->next;
-    temp->size += next->size;
-    free(next);
-
-}
-
-void* mergeBackward(struct memoryList* temp){
-
-    if (temp==NULL){
-        return NULL;
-    }
-
-    /*
-     * block.last = last.last;
-     * block.size += last.size;
-     * block.ptr = last.ptr;
-     * free(last);
-     */
-
-    temp->last = next->last;
-    temp->size += next->last;
-    temp->ptr = next->last->ptr;
-    free(next);
-}
-
 void freeMem(){
 
     while (head!=NULL) {
@@ -221,29 +163,28 @@ void *mymalloc(size_t requested)
 
 
 /* Frees a block of memory previously allocated by mymalloc. */
-void myfree(void* block)
-{
+void myfree(void* block) {
 
 
-    struct memoryList* temp = head;
+    struct memoryList *temp = head;
 
-    while(temp!=NULL && temp->ptr!=block){
+    while (temp != NULL && temp->ptr != block) {
         temp = temp->next;
     }
 
 
+    if (temp != NULL) {
 
-    if (temp!=NULL) {
-        if (temp->last == NULL) {
-            printf("Freeing first %d\n", temp->size);
+        if (temp->last == NULL){
+            printf("Freeing first element\n");
             temp->alloc = 0;
-            free(temp);
-
-        } else if (temp->last->alloc == 1 && temp->next->alloc == 1) {
+        }
+        else if (temp->last->alloc == 1 && temp->next->alloc == 1) {
             temp->alloc = 0;
             printf("Freeing element\n");
-            free(temp);
-        } else if ((temp->last != NULL) && temp->last->alloc == 0) {
+            //TODO: Comment below
+        }
+        else if ((temp->last != NULL) && temp->last->alloc == 0) {
             temp->alloc = 0;
             temp->last->size += temp->size;
 
@@ -256,7 +197,10 @@ void myfree(void* block)
 
             printf("Merging left %d\n", newTemp->size);
             free(newTemp);
-        } else if ((temp->next != NULL) && temp->next->alloc == 0) {
+        }
+
+            //TODO: Comment what following line is doing
+        else if ((temp->next != NULL) && temp->next->alloc == 0) {
             temp->alloc = 0;
             temp->next->size += temp->size;
 
@@ -267,11 +211,12 @@ void myfree(void* block)
                 newTemp->last->ptr = newTemp->next;
             }
 
-            printf("Merging rights %d\n", newTemp->size);
+            printf("Merging right %d\n", newTemp->size);
             free(newTemp);
 
         }
     }
+}
 
 
 
@@ -327,13 +272,13 @@ void myfree(void* block)
 
 
     }
-     */
 
 
 
 
 
 }
+*/
 
 /****** Memory status/property functions ******
  * Implement these functions.
