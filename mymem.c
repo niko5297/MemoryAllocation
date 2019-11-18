@@ -49,101 +49,51 @@ static struct memoryList *current;
 
 void* nextFit (size_t requested){
 
-/*
-        next = (struct memoryList *) malloc(requested);
-        next->size = requested;
-        next->alloc = 1;
+    /**
+     * Skriv lidt om fordi det ligner Anders's løsning
+     */
+        next = (struct memoryList *) malloc(sizeof(struct memoryList));
 
-        if (current!=NULL){
-            next->last = current;
-            current->next = next;
-
-
-            //FIXME: Hvorfor spam printer den?
-            //next->next = head;
-
-            head->last = next;
+        if (current == NULL){
+            current = head;
         }
-        else {
-            next->next = head;
-            next->last = NULL;
 
-            if (head != NULL){
-                head->last = next;
+        while (current != NULL) {
+            sizeLeft = current->size - requested;
+
+            if (current->size < requested || current->alloc == 1) {
+                current = current->next;
+            } else if (sizeLeft != 0) {
+
+                next->last = current;
+                next->next = current->next;
+                next->size = sizeLeft;
+                next->alloc = 0;
+
+                if (head->next == NULL){
+                    head->next = next;
+                }
+
+                current->next = next;
+                current->size = requested;
+                current->alloc = 1;
+
+                if (current->last != NULL) {
+                    current->ptr = current->last->ptr + requested;
+                } else {
+                    current->ptr = current->ptr+ requested;
+                }
+
+                next->ptr = (current->ptr) + sizeLeft;
+
+                return current->ptr;
+            } else {
+                current->alloc = 1;
+
+                return current->ptr;
             }
-            head = next;
-            head->size = sizeLeft - requested;
         }
-        current = next;
-
-
     return current->ptr;
-*/
-
-
-
-
-
-    next = (struct memoryList *) malloc(requested);
-    next->size = requested;
-    next->alloc = 1;
-    next->next = head;
-    next->last = NULL;
-
-        if (head != NULL){
-            head->last = next;
-        }
-        head = next;
-
-
-        return next->ptr;
-
-
-
-
-        /*
-        next->last = next;
-        next->next = next->next;
-
-        if (next->next!=NULL){
-            //Explain
-            next->next->last = next;
-            next->next = next;
-        }
-
-        next->size = head->size-requested;
-        next->ptr = head->ptr+requested;
-        next->alloc = 1;
-        head->alloc = 0;
-    return head->ptr;
-         */
-
-
-        /*
-
-        next->alloc = 1;
-        if (head==NULL){
-            head = next;
-            return next;
-        }
-
-        //FIXME: Sæt Last til noget ellers kan du ikke free det element
-        if (next->last!=NULL){
-            next->next = head;
-            next->last = next->last;
-            printf("Last: %d\n",next->last->size);
-        }
-        else {
-           // printf("First: %d\n", next->size);
-            //head->last = next;
-            next->next = head;
-            next->last = head;
-            //Moves head forward
-            head = next;
-
-
-        }
-         */
 
 
 }
@@ -263,11 +213,7 @@ void *mymalloc(size_t requested)
 	  case Worst:
 	            return NULL;
 	  case Next:
-	            if (requested<=head->size /*&& head->alloc!=1*/) {
-                    return nextFit(requested);
-                } else {
-                    return "ERROR: Not enough memory";
-                }
+          return nextFit(requested);
       }
     return NULL;
 }
@@ -278,31 +224,70 @@ void *mymalloc(size_t requested)
 void myfree(void* block)
 {
 
-    /*
-     * Find element
-     * Set Alloc
-     * Merge block
-     */
-
-    /*
-     * Mergeblock(block)
-     * Check Alloc
-     *  if nextFree(block)
-     *      newBlock = merge()
-     *      Mergeblock(newBlock)
-     *  else if behindFree(block)
-     *      newBlock = merge()
-     *      Mergeblock(newBlock)
-     *  return;
-     */
 
     struct memoryList* temp = head;
+
+    while(temp!=NULL && temp->ptr!=block){
+        temp = temp->next;
+    }
+
+
+
+    if (temp!=NULL) {
+        if (temp->last == NULL) {
+            printf("Freeing first %d\n", temp->size);
+            temp->alloc = 0;
+            free(temp);
+
+        } else if (temp->last->alloc == 1 && temp->next->alloc == 1) {
+            temp->alloc = 0;
+            printf("Freeing element\n");
+            free(temp);
+        } else if ((temp->last != NULL) && temp->last->alloc == 0) {
+            temp->alloc = 0;
+            temp->last->size += temp->size;
+
+            struct memoryList *newTemp = temp;
+
+            if (newTemp->last != NULL) {
+                newTemp->last->ptr = newTemp->next;
+                newTemp->next->ptr = newTemp->last;
+            }
+
+            printf("Merging left %d\n", newTemp->size);
+            free(newTemp);
+        } else if ((temp->next != NULL) && temp->next->alloc == 0) {
+            temp->alloc = 0;
+            temp->next->size += temp->size;
+
+            struct memoryList *newTemp = temp;
+
+            if (newTemp->next != NULL) {
+                newTemp->next->ptr = newTemp->last;
+                newTemp->last->ptr = newTemp->next;
+            }
+
+            printf("Merging rights %d\n", newTemp->size);
+            free(newTemp);
+
+        }
+    }
+
+
+
+
+    /*
+
+    struct memoryList* temp = current;
     while (temp->ptr!=block){
         temp = temp->next;
     }
 
 
     temp->alloc = 0;
+
+    if (temp->last->alloc==1 && temp->next->alloc == 1){
+    }
 
     //TODO: Comment what following line is doing
 
@@ -315,9 +300,8 @@ void myfree(void* block)
             temp2->next->ptr = temp2->last;
         }
 
-        printf("Freeing last %d\n",temp2->size);
+        printf("Merging left %d\n",temp2->size);
         free(temp2);
-        return;
 
     }
 
@@ -337,13 +321,13 @@ void myfree(void* block)
             temp2->last->ptr = temp2->next;
 
         }
-        printf("Freeing next %d\n",temp2->size);
+        printf("Merging right %d\n",temp2->size);
         free(temp2);
-        return;
 
 
 
     }
+     */
 
 
 
