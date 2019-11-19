@@ -71,6 +71,7 @@ void* nextFit (size_t requested){
 
                 //If reached the same element twice, return null since the memory can't be allocated
                 if(temp==current){
+                    printf("Du er nået det samme element igen");
                     return NULL;
                 }
 
@@ -109,6 +110,37 @@ void* nextFit (size_t requested){
 
 }
 
+void freeMemBeforeInit(){
+    struct memoryList* trav = head;
+    struct memoryList* temp = NULL;
+
+    while (trav!=NULL) {
+        temp = trav->next;
+        myfree(trav);
+        trav = temp;
+
+    }
+}
+
+void leftMerge(struct memoryList *temp){
+    temp->size += temp->last->size;
+
+    //Make new temp to last element, so we can free it
+    struct memoryList *newTemp = temp->last;
+
+    //Change pointers
+    temp->last = newTemp->last;
+    temp->ptr -= newTemp->size;
+
+
+    if (newTemp->last != NULL) {
+        newTemp->next->last = temp;
+
+    }
+    free(newTemp);
+
+}
+
 void initmem(strategies strategy, size_t sz)
 {
 	myStrategy = strategy;
@@ -121,16 +153,7 @@ void initmem(strategies strategy, size_t sz)
 
 	// If head is not empty, clear it
 	if(head!=NULL) {
-	    struct memoryList* trav = head;
-	    struct memoryList* temp = NULL;
-
-	    while (trav!=NULL) {
-        temp = trav->next;
-        myfree(trav);
-        trav = temp;
-
-	    }
-	   //  free(head);
+	    freeMemBeforeInit();
 	}
 
 	myMemory = malloc(sz);
@@ -208,21 +231,7 @@ void myfree(void* block) {
         if (temp->alloc == 0 && temp->last != NULL && temp->last->alloc == 0) {
 
             //Merging sizes together - left merge
-            temp->size += temp->last->size;
-
-            //Make new temp to last element, so we can free it
-            struct memoryList *newTemp = temp->last;
-
-            //Change pointers
-            temp->last = newTemp->last;
-            temp->ptr -= newTemp->size;
-
-
-            if (newTemp->last != NULL) {
-                newTemp->next->last = temp;
-
-            }
-            free(newTemp);
+            leftMerge(temp);
 
         }
 
