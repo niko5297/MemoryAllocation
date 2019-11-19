@@ -50,7 +50,7 @@ static struct memoryList *current;
 void* nextFit (size_t requested){
 
     /**
-     * Skriv lidt om fordi det ligner Anders's løsning
+     * Skriv lidt om på følgende løsning
      */
 
         if (current == NULL){
@@ -62,7 +62,7 @@ void* nextFit (size_t requested){
 
             if (current->size < requested || current->alloc == 1) {
                 current = current->next;
-            } else if (sizeLeft != 0) {
+            } else if (sizeLeft > 0) {
 
                 next = (struct memoryList *) malloc(sizeof(struct memoryList));
                 next->last = current;
@@ -96,18 +96,6 @@ void* nextFit (size_t requested){
 
 
 }
-void freeMem(){
-
-    while (head!=NULL) {
-        free(head->ptr);
-        head = head->next;
-        if (head->next==NULL){
-            free(head->ptr);
-            head = head->last;
-        }
-    }
-
-}
 
 void initmem(strategies strategy, size_t sz)
 {
@@ -119,7 +107,7 @@ void initmem(strategies strategy, size_t sz)
 
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
-	if (head!=NULL) freeMem();
+	if(head!=NULL) free(head);
 
 	myMemory = malloc(sz);
 
@@ -175,46 +163,44 @@ void myfree(void* block) {
 
     if (temp != NULL) {
 
-        if (temp->last == NULL){
-            printf("Freeing first element\n");
-            temp->alloc = 0;
-        }
-        else if (temp->last->alloc == 1 && temp->next->alloc == 1) {
-            temp->alloc = 0;
-            printf("Freeing element\n");
-            //TODO: Comment below
-        }
-        else if ((temp->last != NULL) && temp->last->alloc == 0) {
-            temp->alloc = 0;
-            temp->last->size += temp->size;
+        temp->alloc = 0;
 
-            struct memoryList *newTemp = temp;
+        if (temp->alloc == 0 && temp->last != NULL && temp->last->alloc == 0) {
+            temp->size += temp->last->size;
+
+            struct memoryList *newTemp = temp->last;
+            temp->last = newTemp->last;
 
             if (newTemp->last != NULL) {
-                newTemp->last->ptr = newTemp->next;
-                newTemp->next->ptr = newTemp->last;
+                newTemp->next->last = temp;
+                free(newTemp);
             }
 
-            printf("Merging left %d\n", newTemp->size);
-            free(newTemp);
+            //printf("Merging left %d\n", newTemp->size);
+            //free(newTemp);
         }
 
-            //TODO: Comment what following line is doing
-        else if ((temp->next != NULL) && temp->next->alloc == 0) {
-            temp->alloc = 0;
-            temp->next->size += temp->size;
+        //TODO: Comment what following line is doing
+        if (temp->alloc == 0 && temp->next != NULL && temp->next->alloc == 0){
+            temp->size += temp->next->size;
 
-            struct memoryList *newTemp = temp;
+            struct memoryList *newTemp = temp->next;
+            newTemp->alloc = 0;
+            temp->next=newTemp->next;
 
             if (newTemp->next != NULL) {
-                newTemp->next->ptr = newTemp->last;
-                newTemp->last->ptr = newTemp->next;
+                newTemp->next->last = temp;
+                //temp->last->ptr = temp->next;
+                //printf("Merging right %d\n", newTemp->size);
+                free(newTemp);
+
             }
 
-            printf("Merging right %d\n", newTemp->size);
-            free(newTemp);
+
+
 
         }
+
     }
 }
 
@@ -291,6 +277,7 @@ int mem_holes()
 {
     struct memoryList* temp = head;
     int nonAllocs = 0;
+    int rounds = 0;
     while(temp != NULL) {
         if (temp->alloc==0){
             nonAllocs++;
@@ -352,14 +339,26 @@ int mem_largest_free()
 int mem_small_free(int size)
 {
     //TODO: Same logic as above just instead of max compare with size
-	return 0;
+    struct memoryList* temp = head;
+    int freeCounter = 0;
+    while(temp != NULL) {
+        if (temp->alloc==0){
+            if (temp->size>size) freeCounter++;
+        }
+        temp = temp->next;
+    }
+    return freeCounter;
 }       
 
 char mem_is_alloc(void *ptr)
 {
+    //TODO: mem_is_alloc tager imod en ptr, hvorefter den tjekker alle dine blocke igennem efter denne ptr, og returnere alloc
+    struct memoryList* temp = head;
 
-
-    return 0;
+    while (temp->ptr!=ptr){
+        temp = temp->next;
+    }
+    return temp->alloc;
 }
 
 /* 
