@@ -71,13 +71,13 @@ void* nextFit (size_t requested){
 
                 //If reached the same element twice, return null since the memory can't be allocated
                 if(temp==current){
-                    printf("Du er nået det samme element igen");
                     return NULL;
                 }
 
                 //If there is size left, start allocation that block
             } else if (sizeLeft > 0) {
 
+                //Creating new element
                 next = (struct memoryList *) malloc(sizeof(struct memoryList));
                 next->last = current;
                 next->next = current->next;
@@ -139,6 +139,23 @@ void leftMerge(struct memoryList *temp){
     }
     free(newTemp);
 
+}
+
+void rightMerge(struct memoryList *temp){
+    temp->size += temp->next->size;
+
+    //Making new temp to be freed.
+    struct memoryList *newTemp = temp->next;
+
+    //Change pointers
+    temp->next=newTemp->next;
+
+    if (newTemp->next != NULL) {
+        newTemp->next->last = temp;
+
+
+    }
+    free(newTemp);
 }
 
 void initmem(strategies strategy, size_t sz)
@@ -239,34 +256,15 @@ void myfree(void* block) {
         if (temp->alloc == 0 && temp->next != NULL && temp->next->alloc == 0){
 
             //Merging sizes together - right merge
-            temp->size += temp->next->size;
-
-            //Making new temp to be freed.
-            struct memoryList *newTemp = temp->next;
-
-            //Change pointers
-            temp->next=newTemp->next;
-
-            if (newTemp->next != NULL) {
-                newTemp->next->last = temp;
-
-
-            }
-            free(newTemp);
-
-
-
+           rightMerge(temp);
 
         }
         current = temp->next;
-
 
     }
     //If this method will be called again before myMalloc, it will continue search from the current element to minimize delay
     lastTimeFree = 1;
 }
-
-
 
 
 /****** Memory status/property functions ******
