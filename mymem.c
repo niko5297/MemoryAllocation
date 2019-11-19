@@ -218,8 +218,6 @@ void *mymalloc(size_t requested)
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block) {
 
-
-
     //Initalize temp memoryList for searching
     struct memoryList *temp = head;
 
@@ -231,13 +229,8 @@ void myfree(void* block) {
     //While the memoryList is not equal to the block you wish to free, jump to next
     while ((temp != NULL && temp->ptr != block)) {
         temp = temp->next;
-        /*if (temp->ptr == block){
-            break;
-        }
-         */
 
     }
-
 
     if (temp != NULL) {
 
