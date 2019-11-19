@@ -199,12 +199,8 @@ void myfree(void* block) {
 
 
         }
-
-        printf("myMemory %d\n",myMemory);
         current = temp->next;
-        //printf("next: %d",current->last->size);
         current->ptr = current->ptr + current->last->size-1;
-        //current->ptr = current->last->ptr;
 
 
     }
@@ -440,8 +436,6 @@ void try_mymem(int argc, char **argv) {
         second = mymalloc(1);
         myfree(first);
         third = mymalloc(1);
-
-        printf("second + 1 : %d\n",second + 1);
 
         if (second != (first+10))
         {
