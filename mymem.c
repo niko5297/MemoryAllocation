@@ -28,8 +28,6 @@ size_t mySize;
 int sizeLeft;
 void *myMemory = NULL;
 int lastTimeFree = 0;
-void* wrapPointer = NULL;
-int wrapAround = 0;
 
 static struct memoryList *head;
 static struct memoryList *next;
@@ -52,6 +50,7 @@ static struct memoryList *current;
 
 void* nextFit (size_t requested){
 
+    struct memoryList* temp = current;
     // If myFree() ran before
     lastTimeFree = 0;
 
@@ -65,16 +64,16 @@ void* nextFit (size_t requested){
 
             //If current element does not make the requirements to be allocated
             if (current->size < requested || current->alloc == 1) {
-                //If end of list have been reached, set the element to the first
+                //If end of list have been reached, set the element to the first, else go to next element
                 if (current->next == NULL){
-
-                    printf("Current before %d\n",current->ptr);
-                    wrapPointer = current->ptr;
                     current = head;
-                    printf("next->ptr: %d\n",next->ptr);
-
-                    printf("Current %d head-> next %d\n",current->ptr, head->next->ptr);
                 } else current = current->next;
+
+                //If reached the same element twice, return null since the memory can't be allocated
+                if(temp==current){
+                    return NULL;
+                }
+
                 //If there is size left, start allocation that block
             } else if (sizeLeft > 0) {
 
@@ -83,15 +82,17 @@ void* nextFit (size_t requested){
                 next->next = current->next;
                 next->size = sizeLeft;
 
-
+                //For first time, set head->next to the first element, so we can wrap.
                 if (head->next == NULL){
                     head->next = next;
                 }
 
+                //Allocate block
                 current->next = next;
                 current->size = requested;
                 current->alloc = 1;
 
+                //Change pointers accordingly
                 if (current->next!=NULL) {
                     next->ptr = (current->ptr) + requested;
                 }
@@ -119,7 +120,18 @@ void initmem(strategies strategy, size_t sz)
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
 	// If head is not empty, clear it
-	if(head!=NULL) free(head);
+	if(head!=NULL) {
+	    struct memoryList* trav = head;
+	    struct memoryList* temp = NULL;
+
+	    while (trav!=NULL) {
+        temp = trav->next;
+        myfree(trav);
+        trav = temp;
+
+	    }
+	   //  free(head);
+	}
 
 	myMemory = malloc(sz);
 
@@ -189,49 +201,59 @@ void myfree(void* block) {
 
     if (temp != NULL) {
 
+        //Indicate that the block is no longer allocated
         temp->alloc = 0;
 
+        //Check if element is not allocated and the last element is not allocated and not null
         if (temp->alloc == 0 && temp->last != NULL && temp->last->alloc == 0) {
+
+            //Merging sizes together - left merge
             temp->size += temp->last->size;
 
+            //Make new temp to last element, so we can free it
             struct memoryList *newTemp = temp->last;
+
+            //Change pointers
             temp->last = newTemp->last;
+            temp->ptr -= newTemp->size;
+
 
             if (newTemp->last != NULL) {
                 newTemp->next->last = temp;
-                free(newTemp);
+
             }
+            free(newTemp);
 
         }
 
-        //TODO: Comment what following line is doing
+        //Check if element is not allocated and the next element is not allocated and not null
         if (temp->alloc == 0 && temp->next != NULL && temp->next->alloc == 0){
+
+            //Merging sizes together - right merge
             temp->size += temp->next->size;
 
+            //Making new temp to be freed.
             struct memoryList *newTemp = temp->next;
-            newTemp->alloc = 0;
+
+            //Change pointers
             temp->next=newTemp->next;
 
             if (newTemp->next != NULL) {
                 newTemp->next->last = temp;
-                free(newTemp);
+
 
             }
+            free(newTemp);
 
 
 
 
         }
         current = temp->next;
-       /* if (current == NULL){
-            current = temp;
-            current->ptr = current->ptr + current->size-1;
-        } else
-        current->ptr = current->ptr + current->last->size-1;
-*/
 
 
     }
+    //If this method will be called again before myMalloc, it will continue search from the current element to minimize delay
     lastTimeFree = 1;
 }
 
@@ -407,7 +429,7 @@ void print_memory()
     struct memoryList* temp = head;
     printf("NULL <- ");
     while(temp != NULL) {
-     printf("%d(%d) ptr(%d) ",temp->size,temp->alloc, temp->ptr);
+     printf("%d(%d) ",temp->size,temp->alloc);
      if (temp->next!=NULL){
          printf(" <-> ");
      }
@@ -442,63 +464,16 @@ void try_mymem(int argc, char **argv) {
 
     /* A simple example.
        Each algorithm should produce a different layout. */
-    strategies strategy;
-    int lbound = 1;
-    int ubound = 4;
+    initmem(strat,500);
 
-    if (strategyFromString(*(argv+1))>0)
-        lbound=ubound=strategyFromString(*(argv+1));
+    a = mymalloc(100);
+    b = mymalloc(100);
+    c = mymalloc(100);
+    myfree(b);
+    d = mymalloc(50);
+    myfree(a);
+    e = mymalloc(25);
 
-    for (strategy = lbound; strategy <= ubound; strategy++)
-    {
-        int correct_holes = 0;
-        int correct_alloc = 100;
-        int correct_largest_free = 0;
-        int i;
-
-        void* lastPointer = NULL;
-        initmem(strategy,100);
-        for (i = 0; i < 100; i++)
-        {
-            void* pointer = mymalloc(1);
-            if ( i > 0 && pointer != (lastPointer+1) )
-            {
-                printf("Allocation with %s was not sequential at %i; expected %p, actual %p\n", strategy_name(strategy), i,lastPointer+1,pointer);
-            }
-            lastPointer = pointer;
-        }
-
-        for (i = 1; i < 100; i+= 2)
-        {
-            myfree(mem_pool() + i);
-        }
-
-        for (i = 1; i < 100; i+=2)
-        {
-            void* pointer = mymalloc(1);
-            if ( i > 1 && pointer != (lastPointer+2) )
-            {
-                printf("Second allocation with %s was not sequential at %i; expected %p, actual %p\n", strategy_name(strategy), i,lastPointer+1,pointer);
-            }
-            lastPointer = pointer;
-        }
-
-        if (mem_holes() != correct_holes)
-        {
-            printf("Holes not counted as %d with %s\n", correct_holes, strategy_name(strategy));
-        }
-
-        if (mem_allocated() != correct_alloc)
-        {
-            printf("Memory not reported as %d with %s\n", correct_alloc, strategy_name(strategy));
-        }
-
-        if (mem_largest_free() != correct_largest_free)
-        {
-            printf("Largest memory block free not reported as %d with %s\n", correct_largest_free, strategy_name(strategy));
-        }
-
-    }
     print_memory();
     print_memory_status();
 
