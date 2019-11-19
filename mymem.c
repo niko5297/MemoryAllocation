@@ -60,6 +60,7 @@ void* nextFit (size_t requested){
         while (current != NULL) {
             sizeLeft = current->size - requested;
 
+            //current = current->size;
             if (current->size < requested || current->alloc == 1) {
                 current = current->next;
             } else if (sizeLeft > 0) {
@@ -77,13 +78,14 @@ void* nextFit (size_t requested){
                 current->size = requested;
                 current->alloc = 1;
 
-                if (current->last != NULL) {
-                    current->ptr = current->last->ptr + requested;
-                } else {
-                    current->ptr = current->ptr+ requested;
-                }
 
-                next->ptr = (current->ptr) + sizeLeft;
+             /*   if (current->last != NULL) {
+                    current->ptr = current->last->ptr + requested;
+                }
+*/
+                if (current->next!=NULL) {
+                    next->ptr = (current->ptr) + requested;
+                }
 
                 return current->ptr;
             } else {
@@ -125,16 +127,16 @@ void initmem(strategies strategy, size_t sz)
 /* Allocate a block of memory with the requested size.
  *  If the requested block is not available, mymalloc returns NULL.
  *  Otherwise, it returns a pointer to the newly allocated block.
- *  Restriction: requested >= 1 
+ *  Restriction: requested >= 1
  */
 
 void *mymalloc(size_t requested)
 {
 	assert((int)myStrategy > 0);
-	
+
 	switch (myStrategy)
 	  {
-	  case NotSet: 
+	  case NotSet:
 	            return NULL;
 	  case First:
 	            return NULL;
@@ -152,6 +154,7 @@ void *mymalloc(size_t requested)
 
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block) {
+
 
 
     struct memoryList *temp = head;
@@ -176,8 +179,6 @@ void myfree(void* block) {
                 free(newTemp);
             }
 
-            //printf("Merging left %d\n", newTemp->size);
-            //free(newTemp);
         }
 
         //TODO: Comment what following line is doing
@@ -190,8 +191,6 @@ void myfree(void* block) {
 
             if (newTemp->next != NULL) {
                 newTemp->next->last = temp;
-                //temp->last->ptr = temp->next;
-                //printf("Merging right %d\n", newTemp->size);
                 free(newTemp);
 
             }
@@ -201,75 +200,23 @@ void myfree(void* block) {
 
         }
 
+        printf("myMemory %d\n",myMemory);
+        current = temp->next;
+        //printf("next: %d",current->last->size);
+        current->ptr = current->ptr + current->last->size-1;
+        //current->ptr = current->last->ptr;
+
+
     }
 }
 
 
 
-
-    /*
-
-    struct memoryList* temp = current;
-    while (temp->ptr!=block){
-        temp = temp->next;
-    }
-
-
-    temp->alloc = 0;
-
-    if (temp->last->alloc==1 && temp->next->alloc == 1){
-    }
-
-    //TODO: Comment what following line is doing
-
-    if ((temp->last != NULL) && temp->last->alloc==0){
-        //mergeBackward(temp);
-        temp->last->size += temp->size;
-        struct memoryList* temp2 = temp;
-        if (temp2->last !=NULL) {
-            temp2->last->ptr = temp2->next;
-            temp2->next->ptr = temp2->last;
-        }
-
-        printf("Merging left %d\n",temp2->size);
-        free(temp2);
-
-    }
-
-
-    //TODO: Comment what following line is doing
-    if ((temp->next != NULL) && temp->next->alloc==0){
-        //mergeForward(temp);
-       // printf("Last %d",temp->last->size);
-       //printf("Temp %d",temp->size);
-        //temp->next->size += temp->size;
-        struct memoryList* temp2 = temp->next;
-       //struct memoryList* temp2 = temp;
-
-       if (temp2->next!= NULL){
-
-            temp2->next->ptr = temp2->last;
-            temp2->last->ptr = temp2->next;
-
-        }
-        printf("Merging right %d\n",temp2->size);
-        free(temp2);
-
-
-
-    }
-
-
-
-
-
-}
-*/
 
 /****** Memory status/property functions ******
  * Implement these functions.
- * Note that when refered to "memory" here, it is meant that the 
- * memory pool this module manages via initmem/mymalloc/myfree. 
+ * Note that when refered to "memory" here, it is meant that the
+ * memory pool this module manages via initmem/mymalloc/myfree.
  */
 
 /* Get the number of contiguous areas of free space in memory. */
@@ -277,7 +224,6 @@ int mem_holes()
 {
     struct memoryList* temp = head;
     int nonAllocs = 0;
-    int rounds = 0;
     while(temp != NULL) {
         if (temp->alloc==0){
             nonAllocs++;
@@ -343,12 +289,12 @@ int mem_small_free(int size)
     int freeCounter = 0;
     while(temp != NULL) {
         if (temp->alloc==0){
-            if (temp->size>size) freeCounter++;
+            if (temp->size<size) freeCounter++;
         }
         temp = temp->next;
     }
     return freeCounter;
-}       
+}
 
 char mem_is_alloc(void *ptr)
 {
@@ -361,8 +307,8 @@ char mem_is_alloc(void *ptr)
     return temp->alloc;
 }
 
-/* 
- * Feel free to use these functions, but do not modify them.  
+/*
+ * Feel free to use these functions, but do not modify them.
  * The test code uses them, but you may find them useful.
  */
 
@@ -380,7 +326,7 @@ int mem_total()
 }
 
 
-// Get string name for a strategy. 
+// Get string name for a strategy.
 char *strategy_name(strategies strategy)
 {
 	switch (strategy)
@@ -424,7 +370,7 @@ strategies strategyFromString(char * strategy)
 }
 
 
-/* 
+/*
  * These functions are for you to modify however you see fit.  These will not
  * be used in tests, but you may find them useful for debugging.
  */
@@ -433,16 +379,21 @@ strategies strategyFromString(char * strategy)
 void print_memory()
 {
     struct memoryList* temp = head;
+    printf("NULL <- ");
     while(temp != NULL) {
-        printf("Size: %d\n",temp->size);
+     printf("%d(%d) ptr(%d)",temp->size,temp->alloc,temp->ptr);
+     if (temp->next!=NULL){
+         printf(" <-> ");
+     }
         temp = temp->next;
     }
+    printf(" -> NULL\n");
 }
 
-/* Use this function to track memory allocation performance.  
- * This function does not depend on your implementation, 
+/* Use this function to track memory allocation performance.
+ * This function does not depend on your implementation,
  * but on the functions you wrote above.
- */ 
+ */
 void print_memory_status()
 {
 	printf("%d out of %d bytes allocated.\n",mem_allocated(),mem_total());
@@ -461,22 +412,102 @@ void try_mymem(int argc, char **argv) {
 	  strat = strategyFromString(argv[1]);
 	else
 	  strat = First;
-	
-	
-	/* A simple example.  
+
+
+	/* A simple example.
 	   Each algorithm should produce a different layout. */
-	
-	initmem(strat,500);
-	
-	a = mymalloc(100);
-	b = mymalloc(100);
-	c = mymalloc(100);
-	myfree(b);
-	d = mymalloc(50);
-	myfree(a);
-	e = mymalloc(25);
-	
+    strategies strategy;
+    int lbound = 1;
+    int ubound = 4;
+
+    if (strategyFromString(*(argv+1))>0)
+        lbound=ubound=strategyFromString(*(argv+1));
+
+    for (strategy = lbound; strategy <= ubound; strategy++)
+    {
+        int correct_holes;
+        int correct_alloc;
+        int correct_largest_free;
+        int correct_small;
+        void* first;
+        void* second;
+        void* third;
+        int correctThird;
+
+        initmem(strategy,100);
+
+        first = mymalloc(10);
+        second = mymalloc(1);
+        myfree(first);
+        third = mymalloc(1);
+
+        printf("second + 1 : %d\n",second + 1);
+
+        if (second != (first+10))
+        {
+            printf("Second allocation failed; allocated at incorrect offset with strategy %s\n", strategy_name(strategy));
+        }
+
+        correct_alloc = 2;
+        correct_small = (strategy == First || strategy == Best);
+
+        switch (strategy)
+        {
+            case Best:
+                correctThird = (third == first);
+                correct_holes = 2;
+                correct_largest_free = 89;
+                break;
+            case Worst:
+                correctThird = (third == second+1);
+                correct_holes = 2;
+                correct_largest_free = 88;
+                break;
+            case First:
+                correctThird = (third == first);
+                correct_holes = 2;
+                correct_largest_free = 89;
+                break;
+            case Next:
+                correctThird = (third == second+1);
+                correct_holes = 2;
+                correct_largest_free = 88;
+                break;
+            case NotSet:
+                break;
+        }
+
+        if (!correctThird)
+        {
+            printf("Third allocation failed; allocated at incorrect offset with %s", strategy_name(strategy));
+
+        }
+
+        if (mem_holes() != correct_holes)
+        {
+            printf("Holes counted as %d, should be %d with %s\n", mem_holes(), correct_holes, strategy_name(strategy));
+
+        }
+
+        if (mem_small_free(9) != correct_small)
+        {
+            printf("Small holes counted as %d, should be %d with %s\n", mem_small_free(9), correct_small, strategy_name(strategy));
+
+        }
+
+        if (mem_allocated() != correct_alloc)
+        {
+            printf("Memory reported as %d, should be %d with %s\n", mem_allocated(0), correct_alloc, strategy_name(strategy));
+        }
+
+        if (mem_largest_free() != correct_largest_free)
+        {
+            printf("Largest memory block free reported as %d, should be %d with %s\n", mem_largest_free(), correct_largest_free, strategy_name(strategy));
+        }
+
+    }
+
 	print_memory();
 	print_memory_status();
-	
+
 }
