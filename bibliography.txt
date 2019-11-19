@@ -1,4 +1,12 @@
 Provided README.txt
 
+Mandatory 3 guide by Bhupjit
+
+https://github.com/ArmandasRokas/dtu_notes/wiki/ass3_manual
+
+https://www.geeksforgeeks.org/doubly-linked-list/
+
+https://www.geeksforgeeks.org/program-for-next-fit-algorithm-in-memory-management/
+
 
 
